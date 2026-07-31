@@ -38,8 +38,14 @@ export default function OnboardingWizard({ user, onComplete }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-700/60 text-white w-full max-w-2xl rounded-2xl p-6 md:p-8 shadow-2xl relative">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+      style={{ backgroundColor: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(12px)' }}
+    >
+      <div 
+        className="text-white w-full max-w-2xl rounded-2xl p-6 md:p-8 shadow-2xl relative border"
+        style={{ backgroundColor: '#0f172a', borderColor: '#334155' }}
+      >
         
         {/* Step Progress Header */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800">
@@ -64,7 +70,7 @@ export default function OnboardingWizard({ user, onComplete }) {
         {/* PHASE A: GitHub Signup Guide & ID Input */}
         {phase === 'A' && (
           <div className="space-y-6">
-            <div className="p-4 bg-indigo-950/50 border border-indigo-500/30 rounded-xl">
+            <div className="p-4 border rounded-xl" style={{ backgroundColor: '#1e1b4b', borderColor: '#4338ca' }}>
               <h3 className="text-base font-bold text-indigo-300 mb-1">Step 1. GitHub 회원가입 & ID 입력</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
                 아직 GitHub 계정이 없으신가요? 먼저 깃허브에 회원가입을 완료해 주세요.<br/>
@@ -75,7 +81,8 @@ export default function OnboardingWizard({ user, onComplete }) {
                   href="https://github.com/signup" 
                   target="_blank" 
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold rounded-lg border border-slate-700 transition"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-indigo-300 text-xs font-semibold rounded-lg border transition"
+                  style={{ backgroundColor: '#1e293b', borderColor: '#475569' }}
                 >
                   🌐 GitHub 1초 회원가입 페이지 이동 ↗
                 </a>
@@ -91,12 +98,13 @@ export default function OnboardingWizard({ user, onComplete }) {
                 value={githubId}
                 onChange={(e) => setGithubId(e.target.value)}
                 placeholder="예: koreameme001"
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm"
+                className="w-full px-4 py-3 border rounded-xl text-white placeholder-slate-500 focus:outline-none text-sm"
+                style={{ backgroundColor: '#020617', borderColor: '#334155' }}
               />
             </div>
 
             {errorMsg && (
-              <p className="text-xs text-red-400 bg-red-950/40 p-3 rounded-lg border border-red-800/40">
+              <p className="text-xs text-red-400 p-3 rounded-lg border" style={{ backgroundColor: '#450a0a', borderColor: '#991b1b' }}>
                 ⚠️ {errorMsg}
               </p>
             )}
@@ -124,7 +132,7 @@ export default function OnboardingWizard({ user, onComplete }) {
         {/* PHASE B: Affiliate API Vault & SNS Connection Guide */}
         {phase === 'B' && (
           <div className="space-y-6">
-            <div className="p-4 bg-emerald-950/40 border border-emerald-500/30 rounded-xl">
+            <div className="p-4 border rounded-xl" style={{ backgroundColor: '#022c22', borderColor: '#059669' }}>
               <div className="flex items-center gap-2 text-emerald-400 font-bold mb-1">
                 <span>🎉</span>
                 <h3>블로그 개설 완료: {createdBlogUrl}</h3>
@@ -135,18 +143,18 @@ export default function OnboardingWizard({ user, onComplete }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="p-4 rounded-xl border" style={{ backgroundColor: '#020617', borderColor: '#334155' }}>
                 <h4 className="text-xs font-bold text-indigo-400 mb-2">🔑 1. 제휴 API 키 설정</h4>
                 <p className="text-xs text-slate-400 mb-3">쿠팡파트너스, 애드픽, 링크프라이스 API 키를 등록하세요.</p>
-                <span className="inline-block px-2.5 py-1 bg-indigo-950 text-indigo-300 text-xs font-medium rounded-md border border-indigo-800/40">
+                <span className="inline-block px-2.5 py-1 text-indigo-300 text-xs font-medium rounded-md border" style={{ backgroundColor: '#1e1b4b', borderColor: '#3730a3' }}>
                   대시보드 [설정] 탭에서 가능
                 </span>
               </div>
 
-              <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="p-4 rounded-xl border" style={{ backgroundColor: '#020617', borderColor: '#334155' }}>
                 <h4 className="text-xs font-bold text-purple-400 mb-2">📱 2. 4대 SNS 계정 연동</h4>
                 <p className="text-xs text-slate-400 mb-3">인스타그램, 페이스북, 스레드, X 계정을 1초 연동하세요.</p>
-                <span className="inline-block px-2.5 py-1 bg-purple-950 text-purple-300 text-xs font-medium rounded-md border border-purple-800/40">
+                <span className="inline-block px-2.5 py-1 text-purple-300 text-xs font-medium rounded-md border" style={{ backgroundColor: '#3b0764', borderColor: '#6b21a8' }}>
                   대시보드 [SNS 연동] 탭에서 가능
                 </span>
               </div>
@@ -164,7 +172,7 @@ export default function OnboardingWizard({ user, onComplete }) {
         {/* PHASE C: Blog & SNS Publishing Guide & Start */}
         {phase === 'C' && (
           <div className="space-y-6">
-            <div className="p-4 bg-purple-950/40 border border-purple-500/30 rounded-xl">
+            <div className="p-4 border rounded-xl" style={{ backgroundColor: '#3b0764', borderColor: '#7e22ce' }}>
               <h3 className="text-base font-bold text-purple-300 mb-1">Step 3. 오토 포스팅 & SNS 일괄/개별 발송</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
                 모든 설정이 완성되었습니다! 5개 제휴 URL을 입력하시면 AI 구글 SEO 블로그가 생성되고 4대 SNS로 스마트 포스팅됩니다.
@@ -172,15 +180,15 @@ export default function OnboardingWizard({ user, onComplete }) {
             </div>
 
             <div className="space-y-3 text-xs text-slate-300">
-              <div className="flex items-start gap-2 p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <div className="flex items-start gap-2 p-3 rounded-lg border" style={{ backgroundColor: '#020617', borderColor: '#334155' }}>
                 <span className="text-indigo-400 font-bold">1.</span>
                 <p><strong>SEO 블로그 자동 게재</strong>: 1번 대표이미지 배지 합성 + EEAT 5종 상품 비교표 + 유튜브 비디오가 포함된 글이 <code className="text-indigo-300">{createdBlogUrl}/posts/post-102.html</code> 로 1초 만에 자동 게시됩니다.</p>
               </div>
-              <div className="flex items-start gap-2 p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <div className="flex items-start gap-2 p-3 rounded-lg border" style={{ backgroundColor: '#020617', borderColor: '#334155' }}>
                 <span className="text-purple-400 font-bold">2.</span>
                 <p><strong>스마트 SNS 포스팅</strong>: 연동된 인스타그램, 페이스북, 스레드, X로 숏 카피+블로그 URL이 일괄/개별 자동 게재됩니다.</p>
               </div>
-              <div className="flex items-start gap-2 p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <div className="flex items-start gap-2 p-3 rounded-lg border" style={{ backgroundColor: '#020617', borderColor: '#334155' }}>
                 <span className="text-emerald-400 font-bold">3.</span>
                 <p><strong>수동 복사 패널</strong>: AI가 작성한 2~3줄 카피를 1클릭 복사해 수동으로 게시할 수도 있습니다.</p>
               </div>
