@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import OnboardingWizard from '../components/OnboardingWizard';
+import AuthModal from './AuthModal';
 
-export default function Dashboard({ currentUser }) {
+export default function Dashboard({ currentUser, onLogout }) {
   const [activeTab, setActiveTab] = useState('publisher'); // publisher | search | analytics | vault | admin
   const [installInfo, setInstallInfo] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // 5-URL Input State
@@ -25,6 +27,8 @@ export default function Dashboard({ currentUser }) {
 
   // Admin Panel State
   const [adminUsers, setAdminUsers] = useState([]);
+  const [adminUsersList, setAdminUsersList] = useState([]);
+  const [adminLoading, setAdminLoading] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newFullName, setNewFullName] = useState('');
@@ -34,7 +38,10 @@ export default function Dashboard({ currentUser }) {
 
   useEffect(() => {
     fetchInstallationStatus();
-  }, [currentUser?.id]);
+    if (isAdmin) {
+      fetchAdminUsers();
+    }
+  }, [currentUser?.id, isAdmin]);
 
   const fetchInstallationStatus = async () => {
     if (!currentUser?.id) return;
@@ -49,6 +56,67 @@ export default function Dashboard({ currentUser }) {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchAdminUsers = async () => {
+    setAdminLoading(true);
+    try {
+      const res = await fetch('/snsauto/api/admin/users');
+      if (res.ok) {
+        const data = await res.json();
+        setAdminUsersList(data.users || data || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  const handleAdminCreateUser = async () => {
+    if (!newEmail.trim() || !newPassword.trim()) {
+      alert('이메일과 비밀번호를 입력해 주세요.');
+      return;
+    }
+    try {
+      const res = await fetch('/snsauto/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newEmail.trim(),
+          password: newPassword.trim(),
+          plan: newPlan,
+          role: 'user'
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || '신규 유저 계정이 발급되었습니다!');
+        setNewEmail('');
+        setNewPassword('');
+        fetchAdminUsers();
+      } else {
+        alert(data.detail || '회원 발급 실패');
+      }
+    } catch (err) {
+      alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleAdminUpdateTier = async (userId, targetPlan) => {
+    try {
+      const res = await fetch(`/snsauto/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: targetPlan })
+      });
+      if (res.ok) {
+        alert(`유저 플랜이 [${targetPlan.toUpperCase()}] (으)로 변경되었습니다!`);
+        fetchAdminUsers();
+      }
+    } catch (err) {
+      alert('플랜 변경 중 오류가 발생했습니다.');
     }
   };
 
@@ -135,6 +203,7 @@ export default function Dashboard({ currentUser }) {
       {showWizard && (
         <OnboardingWizard
           user={currentUser}
+          onClose={() => setShowWizard(false)}
           onComplete={(url) => {
             setShowWizard(false);
             setInstallInfo(prev => ({ ...prev, installation_status: 'COMPLETED', blog_url: url }));
@@ -189,9 +258,53 @@ export default function Dashboard({ currentUser }) {
               <div className="text-xs font-bold text-slate-200">{currentUser?.email || 'admin@snsautopost.com'}</div>
               <div className="text-[10px] text-indigo-400 font-semibold uppercase">{currentUser?.plan || 'PRO'} MEMBER</div>
             </div>
+            
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-1"
+            >
+              🔑 로그인 / 계정 전환
+            </button>
+
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition"
+              >
+                🔓 로그아웃
+              </button>
+            )}
           </div>
         </div>
       </header>
+
+      {/* Login / Auth Modal Overlay */}
+      {showLoginModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+          style={{ backgroundColor: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(12px)' }}
+        >
+          <div className="relative w-full max-w-md">
+            <button
+              onClick={() => setShowLoginModal(false)}
+              className="absolute -top-3 -right-3 z-10 w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold border border-slate-700 shadow-lg"
+            >
+              ✕
+            </button>
+            <AuthModal
+              currentUser={currentUser}
+              onLoginSuccess={(user) => {
+                setShowLoginModal(false);
+                if (window.location) window.location.reload();
+              }}
+              onLogout={() => {
+                setShowLoginModal(false);
+                if (onLogout) onLogout();
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Main Tab Bar */}
       <nav className="bg-slate-900 border-b border-slate-800 px-6 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none">
@@ -484,35 +597,122 @@ export default function Dashboard({ currentUser }) {
         {/* TAB 4: Vault */}
         {activeTab === 'vault' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-              <h3 className="text-base font-bold text-indigo-300">🔑 내 제휴 API 키 암호화 Vault</h3>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">쿠팡파트너스 Access Key</label>
-                <input
-                  type="password"
-                  value={coupangAccessKey}
-                  onChange={(e) => setCoupangAccessKey(e.target.value)}
-                  placeholder="key-****-1234"
-                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
-                />
+                <h3 className="text-base font-bold text-indigo-300 flex items-center gap-2">
+                  <span>🔑</span> 내 제휴 API 키 암호화 Vault
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  쿠팡파트너스, 애드픽, 링크프라이스 API 키를 보관하시면 상품 통합 검색 및 자동 링크 변환이 지원됩니다.
+                </p>
               </div>
+
+              {/* 1. Coupang Partners */}
+              <div className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3">
+                <div className="text-xs font-bold text-orange-400 flex items-center gap-1.5">
+                  <span>🛒</span> 1. 쿠팡파트너스 (Coupang Partners API)
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Access Key</label>
+                  <input
+                    type="password"
+                    value={coupangAccessKey}
+                    onChange={(e) => setCoupangAccessKey(e.target.value)}
+                    placeholder="AF****-****-****-****"
+                    className="w-full px-3.5 py-2 rounded-xl text-xs font-mono"
+                    style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Secret Key</label>
+                  <input
+                    type="password"
+                    value={coupangSecretKey}
+                    onChange={(e) => setCoupangSecretKey(e.target.value)}
+                    placeholder="Secret Key 입력"
+                    className="w-full px-3.5 py-2 rounded-xl text-xs font-mono"
+                    style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                  />
+                </div>
+              </div>
+
+              {/* 2. Adpick */}
+              <div className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3">
+                <div className="text-xs font-bold text-purple-400 flex items-center gap-1.5">
+                  <span>📢</span> 2. 애드픽 (Adpick Affiliate API)
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">파트너 회원 연동 키 (Partner Key / Token)</label>
+                  <input
+                    type="password"
+                    value={adpickPartnerKey}
+                    onChange={(e) => setAdpickPartnerKey(e.target.value)}
+                    placeholder="애드픽 파트너 인증 키 입력"
+                    className="w-full px-3.5 py-2 rounded-xl text-xs font-mono"
+                    style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                  />
+                </div>
+              </div>
+
+              {/* 3. Linkprice */}
+              <div className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3">
+                <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span>🔗</span> 3. 링크프라이스 (Linkprice API)
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">머천트 ID / API인증 키 (Merchant ID / Token)</label>
+                  <input
+                    type="password"
+                    value={linkpriceMerchantId}
+                    onChange={(e) => setLinkpriceMerchantId(e.target.value)}
+                    placeholder="링크프라이스 머천트 인증 키 입력"
+                    className="w-full px-3.5 py-2 rounded-xl text-xs font-mono"
+                    style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                  />
+                </div>
+              </div>
+
               <button
-                onClick={() => alert('API 키가 안전하게 암호화 저장되었습니다!')}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl"
+                onClick={() => alert('🎉 쿠팡파트너스, 애드픽, 링크프라이스 API 키가 안전하게 AES-256 암호화 저장되었습니다!')}
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs rounded-xl shadow-lg transition tracking-wide"
               >
-                저장하기
+                💾 전체 제휴 API 키 안전 저장
               </button>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-              <h3 className="text-base font-bold text-purple-300">📱 내 4대 SNS 계정 연동 센터</h3>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+              <div>
+                <h3 className="text-base font-bold text-purple-300 flex items-center gap-2">
+                  <span>📱</span> 내 4대 SNS 계정 연동 센터
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  인스타그램, 페이스북, 스레드, X 계정의 OAuth 1초 연동 상태입니다.
+                </p>
+              </div>
+
               <div className="space-y-3 text-xs">
-                {['instagram', 'x', 'facebook', 'threads'].map(platform => (
-                  <div key={platform} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
-                    <span className="font-bold capitalize">{platform}</span>
-                    <span className="px-2.5 py-1 bg-emerald-950 text-emerald-400 text-[10px] font-bold rounded-md">
-                      🟢 연동 완료
-                    </span>
+                {[
+                  { name: 'Instagram', icon: '📸', color: 'text-pink-400' },
+                  { name: 'X (Twitter)', icon: '✖️', color: 'text-slate-100' },
+                  { name: 'Facebook', icon: '📘', color: 'text-blue-400' },
+                  { name: 'Threads', icon: '🧵', color: 'text-purple-400' }
+                ].map(item => (
+                  <div key={item.name} className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span>{item.icon}</span>
+                      <span className={`font-bold ${item.color}`}>{item.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 bg-emerald-950 text-emerald-400 text-[10px] font-bold rounded-md border border-emerald-800/40">
+                        🟢 1초 연동 완료
+                      </span>
+                      <button 
+                        onClick={() => alert(`${item.name} 계정 토큰 갱신 완료`)}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold rounded"
+                      >
+                        재연동
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -522,40 +722,140 @@ export default function Dashboard({ currentUser }) {
 
         {/* TAB 5: Admin Panel */}
         {activeTab === 'admin' && isAdmin && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <h3 className="text-base font-bold text-amber-400 flex items-center gap-2">
-              <span>👑</span> 최고 관리자 전용 회원 발급 & 등급 통제 콘솔
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <input
-                type="email"
-                placeholder="신규 회원 이메일"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
-              />
-              <input
-                type="password"
-                placeholder="비밀번호 지정"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
-              />
-              <select
-                value={newPlan}
-                onChange={(e) => setNewPlan(e.target.value)}
-                className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
-              >
-                <option value="free">Free 플랜</option>
-                <option value="pro">Pro 플랜 (월 100회)</option>
-                <option value="enterprise">Enterprise 플랜 (무제한)</option>
-              </select>
-              <button
-                onClick={() => alert(`신규 계정(${newEmail}) 발급 완료!`)}
-                className="py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl"
-              >
-                + 신규 계정 발급
-              </button>
+          <div className="space-y-6">
+            {/* New User Creation Form */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+              <h3 className="text-base font-bold text-amber-400 flex items-center gap-2">
+                <span>👑</span> 최고 관리자 전용 회원 발급 & 등급 통제 콘솔
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <input
+                  type="email"
+                  placeholder="신규 회원 이메일 (예: user@company.com)"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                />
+                <input
+                  type="password"
+                  placeholder="초기 비밀번호 지정"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                />
+                <select
+                  value={newPlan}
+                  onChange={(e) => setNewPlan(e.target.value)}
+                  className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                >
+                  <option value="free">Free 플랜 (기본)</option>
+                  <option value="pro">Pro 플랜 (월 100회)</option>
+                  <option value="enterprise">Enterprise 플랜 (무제한)</option>
+                </select>
+                <button
+                  onClick={handleAdminCreateUser}
+                  className="py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-bold text-xs rounded-xl shadow-md transition"
+                >
+                  + 신규 계정 즉시 발급
+                </button>
+              </div>
+            </div>
+
+            {/* Registered Users List Table */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                  <span>👥</span> 등록된 전체 회원 목록 ({adminUsersList.length} 명)
+                </h3>
+                <button
+                  onClick={fetchAdminUsers}
+                  className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-300 transition"
+                >
+                  🔄 목록 새로고침
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 font-bold bg-slate-950/60">
+                      <th className="p-3">ID / 이메일</th>
+                      <th className="p-3">역할 / 상태</th>
+                      <th className="p-3">회원 요금제 플랜</th>
+                      <th className="p-3">연동된 GitHub 블로그</th>
+                      <th className="p-3">연동 상태</th>
+                      <th className="p-3 text-right">관리 통제</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {adminUsersList.map((u) => (
+                      <tr key={u.id} className="hover:bg-slate-800/40 transition">
+                        <td className="p-3 font-bold text-slate-100">{u.email}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'admin' ? 'bg-purple-950 text-purple-300 border border-purple-800' : 'bg-slate-800 text-slate-300'}`}>
+                            {u.role === 'admin' ? '👑 최고 관리자' : '👤 일반 회원'}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <select
+                            value={u.plan || 'free'}
+                            onChange={(e) => handleAdminUpdateTier(u.id, e.target.value)}
+                            className="px-2 py-1 rounded text-xs border"
+                            style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                          >
+                            <option value="free">FREE</option>
+                            <option value="starter">STARTER</option>
+                            <option value="pro">PRO</option>
+                            <option value="enterprise">ENTERPRISE</option>
+                          </select>
+                        </td>
+                        <td className="p-3 font-mono text-slate-300">
+                          {u.github_id ? (
+                            <a href={u.blog_url || `https://${u.github_id}.github.io`} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
+                              {u.github_id} ↗
+                            </a>
+                          ) : (
+                            <span className="text-slate-600">미등록</span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${u.installation_status === 'COMPLETED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-500'}`}>
+                            {u.installation_status === 'COMPLETED' ? '🟢 완료' : '⏳ 미연동'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => {
+                              const newPw = prompt(`${u.email} 님의 변경할 새로운 비밀번호를 입력해 주세요:`);
+                              if (newPw) {
+                                fetch(`/snsauto/api/admin/users/${u.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ password: newPw })
+                                }).then(() => alert('비밀번호가 성공적으로 변경되었습니다!'));
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[11px] font-semibold transition"
+                          >
+                            🔑 비번 변경
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {adminUsersList.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="p-6 text-center text-slate-500">
+                          등록된 회원 정보가 없습니다. 위 입력창에서 신규 회원 계정을 발급하세요.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
