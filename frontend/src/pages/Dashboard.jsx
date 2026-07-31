@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import OnboardingWizard from '../components/OnboardingWizard';
 import AuthModal from './AuthModal';
 
+// Recommended Keyword Pools (10 per set, 3 rotating pools)
+const KEYWORD_POOLS = [
+  ['로봇청소기', '무선이어폰', '공기청정기', '식기세척기', '스마트워치', '게이밍모니터', '음식물처리기', '캠핑용빔프로젝터', '안마의자', '노트북추천'],
+  ['겨울패딩', '다이어트보조제', '러닝화추천', '전기장판', '에어프라이어', '캠핑난로', '헤어드라이기', '비타민영양제', '차량용청소기', '밀키트추천'],
+  ['아이패드', '갤럭시버즈', '수분크림', '자외선차단제', '아이폰케이스', '마사지건', '블루투스스피커', '전동칫솔', '텀블러추천', '쿠션팩트']
+];
+
 export default function Dashboard({ currentUser, onLogout }) {
   const [activeTab, setActiveTab] = useState('publisher'); // publisher | search | analytics | vault | admin
   const [installInfo, setInstallInfo] = useState(null);
@@ -18,6 +25,7 @@ export default function Dashboard({ currentUser, onLogout }) {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [currentPoolIdx, setCurrentPoolIdx] = useState(0);
 
   // User Vault API Keys State
   const [coupangAccessKey, setCoupangAccessKey] = useState('');
@@ -623,7 +631,7 @@ export default function Dashboard({ currentUser, onLogout }) {
                     <span>🔥</span> 실시간 AI 추천 핫 트렌드 키워드 TOP 10 (1클릭 바로 검색)
                   </span>
                   <button
-                    onClick={() => setCurrentPoolIdx((prev) => (prev + 1) % keywordPools.length)}
+                    onClick={() => setCurrentPoolIdx((prev) => (prev + 1) % KEYWORD_POOLS.length)}
                     className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition border border-slate-700 flex items-center gap-1.5 shadow-sm"
                   >
                     <span>🔄</span> 키워드 새로고침
@@ -631,7 +639,7 @@ export default function Dashboard({ currentUser, onLogout }) {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {keywordPools[currentPoolIdx].map((kw) => (
+                  {KEYWORD_POOLS[currentPoolIdx].map((kw) => (
                     <button
                       key={kw}
                       onClick={() => {
