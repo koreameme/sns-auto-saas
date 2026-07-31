@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+!.env.production.example
+deploy/server.env
+test_keys.py
+debug_env2.py
+*.db
+*.sqlite
+__pycache__/
+node_modules/
+dist/
+.DS_Store
