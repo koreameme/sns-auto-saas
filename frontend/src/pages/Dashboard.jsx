@@ -2,12 +2,22 @@ import React, { useState, useEffect } from 'react';
 import OnboardingWizard from '../components/OnboardingWizard';
 import AuthModal from './AuthModal';
 
-// Recommended Keyword Pools (10 per set, 3 rotating pools)
-const KEYWORD_POOLS = [
-  ['로봇청소기', '무선이어폰', '공기청정기', '식기세척기', '스마트워치', '게이밍모니터', '음식물처리기', '캠핑용빔프로젝터', '안마의자', '노트북추천'],
-  ['겨울패딩', '다이어트보조제', '러닝화추천', '전기장판', '에어프라이어', '캠핑난로', '헤어드라이기', '비타민영양제', '차량용청소기', '밀키트추천'],
-  ['아이패드', '갤럭시버즈', '수분크림', '자외선차단제', '아이폰케이스', '마사지건', '블루투스스피커', '전동칫솔', '텀블러추천', '쿠션팩트']
+// 80 High-Conversion E-Commerce Hot Keywords Pool
+const ALL_HOT_KEYWORDS = [
+  '로봇청소기', '무선이어폰', '공기청정기', '식기세척기', '스마트워치', '게이밍모니터', '음식물처리기', '캠핑용빔프로젝터', '안마의자', '노트북추천',
+  '겨울패딩', '다이어트보조제', '러닝화추천', '전기장판', '에어프라이어', '캠핑난로', '헤어드라이기', '비타민영양제', '차량용청소기', '밀키트추천',
+  '아이패드', '갤럭시버즈', '수분크림', '자외선차단제', '아이폰케이스', '마사지건', '블루투스스피커', '전동칫솔', '텀블러추천', '쿠션팩트',
+  '유모차추천', '카시트', '아기물티슈', '강아지사료', '고양이모래', '어린이영양제', '분유포트', '장난감선물', '강아지간식', '유아용품',
+  '커피머신', '무선청소기', '전자레인지', '인덕션', '정수기추천', '와인셀러', '제빵기', '블렌더믹서기', '스팀다리미', '의류건조기',
+  '캠핑텐트', '골프채세트', '등산화', '자전거추천', '요가매트', '덤벨세트', '낚시대', '수영복', '스노클링장비', '캠핑체어',
+  '모션베드', '컴퓨터책상', '인체공학의자', '암막커튼', 'LED스탠드', '소파추천', '매트리스', '행거옷장', '식탁세트', '전신거울',
+  '홍삼선물세트', '유산균추천', '프로틴파우더', '닭가슴살', '견과류세트', '원두커피', '한우선물세트', '밀키트핫딜', '과일선물세트', '올리브유'
 ];
+
+const getRandomKeywords = (count = 10) => {
+  const shuffled = [...ALL_HOT_KEYWORDS].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+};
 
 export default function Dashboard({ currentUser, onLogout }) {
   const [activeTab, setActiveTab] = useState('publisher'); // publisher | search | analytics | vault | admin
@@ -25,7 +35,21 @@ export default function Dashboard({ currentUser, onLogout }) {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [currentPoolIdx, setCurrentPoolIdx] = useState(0);
+  const [randomKeywords, setRandomKeywords] = useState(() => getRandomKeywords(10));
+  const [isHoveredKeywords, setIsHoveredKeywords] = useState(false);
+
+  // Live Real-Time Auto Rotation Every 3.5 seconds unless hovered
+  useEffect(() => {
+    if (isHoveredKeywords) return;
+    const interval = setInterval(() => {
+      setRandomKeywords(getRandomKeywords(10));
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [isHoveredKeywords]);
+
+  const refreshRandomKeywords = () => {
+    setRandomKeywords(getRandomKeywords(10));
+  };
 
   // User Vault API Keys State
   const [coupangAccessKey, setCoupangAccessKey] = useState('');
@@ -624,29 +648,42 @@ export default function Dashboard({ currentUser, onLogout }) {
                 </button>
               </div>
 
-              {/* AI Recommended Hot Keywords TOP 10 Panel */}
-              <div className="mt-6 pt-4 border-t border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                    <span>🔥</span> 실시간 AI 추천 핫 트렌드 키워드 TOP 10 (1클릭 바로 검색)
-                  </span>
+              {/* AI Recommended Live Real-Time Random Hot Keywords TOP 10 Panel */}
+              <div
+                className="mt-6 pt-4 border-t border-slate-800 space-y-3"
+                onMouseEnter={() => setIsHoveredKeywords(true)}
+                onMouseLeave={() => setIsHoveredKeywords(false)}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                      <span>🔥</span> 실시간 무작위 추천 핫 키워드 TOP 10 (1클릭 자동 검색)
+                    </span>
+                    <span className="px-2.5 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold rounded-full shadow-sm flex items-center gap-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      {isHoveredKeywords ? '⏸️ 일시 정지됨 (마우스 감지)' : '🔴 LIVE 실시간 3.5초 랜덤 교체 중'}
+                    </span>
+                  </div>
                   <button
-                    onClick={() => setCurrentPoolIdx((prev) => (prev + 1) % KEYWORD_POOLS.length)}
-                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition border border-slate-700 flex items-center gap-1.5 shadow-sm"
+                    onClick={refreshRandomKeywords}
+                    className="px-3.5 py-1 bg-gradient-to-r from-indigo-900 to-purple-900 hover:from-indigo-800 hover:to-purple-800 text-amber-300 text-xs font-bold rounded-lg transition border border-indigo-500/40 flex items-center gap-1.5 shadow-md active:scale-95"
                   >
-                    <span>🔄</span> 키워드 새로고침
+                    <span>🎲</span> 1초 즉시 무작위 새로고침
                   </button>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {KEYWORD_POOLS[currentPoolIdx].map((kw) => (
+                  {randomKeywords.map((kw) => (
                     <button
                       key={kw}
                       onClick={() => {
                         setSearchKeyword(kw);
                         handleSearchProducts(kw);
                       }}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-sm ${
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-sm transition-all duration-300 ${
                         searchKeyword === kw
                           ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-400 shadow-md scale-105'
                           : 'bg-slate-950/80 text-slate-200 border-slate-800 hover:border-indigo-500/50 hover:text-white hover:bg-slate-800'
