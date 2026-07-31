@@ -150,33 +150,10 @@ export default function AuthModal({ currentUser, onLoginSuccess, onLogout }) {
               className="btn btn-primary"
               type="submit"
               disabled={loading}
-              style={{ padding: '0.8rem', fontWeight: 700, marginTop: '0.5rem' }}
+              style={{ padding: '0.8rem', fontWeight: 700, marginTop: '0.5rem', width: '100%' }}
             >
-              {loading ? '처리 중...' : mode === 'login' ? '🔑 로그인하기' : '📝 회원가입 신청하기'}
+              {loading ? '처리 중...' : '🔑 로그인하기'}
             </button>
-
-            <div style={{
-              display: 'flex',
-              justify: 'space-between',
-              alignItems: 'center',
-              marginTop: '0.75rem',
-              fontSize: '0.85rem',
-              color: 'var(--text-muted)',
-            }}>
-              <span>
-                {mode === 'login' ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}
-              </span>
-              <button
-                type="button"
-                style={{ background: 'none', border: 'none', color: 'var(--accent-light)', cursor: 'pointer', fontWeight: 600 }}
-                onClick={() => {
-                  setMode(mode === 'login' ? 'signup' : 'login');
-                  setErrorMsg('');
-                }}
-              >
-                {mode === 'login' ? '회원가입 신청' : '로그인으로 이동'}
-              </button>
-            </div>
           </form>
         )}
       </div>
