@@ -242,7 +242,8 @@ export default function Dashboard({ currentUser }) {
                       value={blogTitle}
                       onChange={(e) => setBlogTitle(e.target.value)}
                       placeholder="예: 2026년 가성비 로봇청소기 TOP 5 솔직 비교 리뷰"
-                      className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-4 py-2.5 rounded-xl text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-medium border"
+                      style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
                     />
                   </div>
 
@@ -256,7 +257,8 @@ export default function Dashboard({ currentUser }) {
                           value={url}
                           onChange={(e) => handleUrlChange(idx, e.target.value)}
                           placeholder={`제휴 URL ${idx + 1} 번 입력 (쿠팡 / 애드픽 / 링크프라이스)`}
-                          className="flex-1 px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono"
+                          className="flex-1 px-4 py-2 rounded-xl text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono border"
+                          style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
                         />
                         {url && (
                           <button

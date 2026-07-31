@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { setupGithubBlogApi } from '../api';
 
-export default function OnboardingWizard({ user, onComplete }) {
+export default function OnboardingWizard({ user, onComplete, onClose }) {
   const [phase, setPhase] = useState('A'); // A: GitHub Signup & ID -> B: Affiliate & SNS Vault -> C: Auto Post Guide
   const [githubId, setGithubId] = useState(user?.github_id || '');
   const [loading, setLoading] = useState(false);
@@ -15,23 +16,18 @@ export default function OnboardingWizard({ user, onComplete }) {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch('/api/setup-github-blog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user?.id || 1,
-          github_id: githubId.trim()
-        })
+      const data = await setupGithubBlogApi({
+        user_id: user?.id || 1,
+        github_id: githubId.trim()
       });
-      const data = await res.json();
-      if (res.ok && data.status === 'success') {
+      if (data && data.status === 'success') {
         setCreatedBlogUrl(data.blog_url);
         setPhase('B');
       } else {
-        setErrorMsg(data.message || data.detail || '블로그 개설에 실패했습니다.');
+        setErrorMsg(data?.message || data?.detail || '블로그 개설에 실패했습니다.');
       }
     } catch (err) {
-      setErrorMsg('서버와 통신 중 오류가 발생했습니다.');
+      setErrorMsg(err.message || '서버와 통신 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -46,9 +42,17 @@ export default function OnboardingWizard({ user, onComplete }) {
         className="text-white w-full max-w-2xl rounded-2xl p-6 md:p-8 shadow-2xl relative border"
         style={{ backgroundColor: '#0f172a', borderColor: '#334155' }}
       >
-        
+        {/* Top-Right Close Button ✕ */}
+        <button
+          onClick={onClose}
+          title="닫기"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg font-bold transition border border-slate-700 shadow-md"
+        >
+          ✕
+        </button>
+
         {/* Step Progress Header */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800 pr-10">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🧙‍♂️</span>
             <div>
