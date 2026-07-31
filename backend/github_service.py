@@ -16,16 +16,22 @@ class GitHubBlogService:
             "Accept": "application/vnd.github.v3+json"
         }
 
-    def create_github_blog(self, github_id: str) -> dict:
+    def create_github_blog(self, github_id: str, user_token: str = None) -> dict:
         """
         Calls GitHub REST API to automatically create {github_id}.github.io repository
-        or a dedicated sns-auto-blog repository, uploads base theme files, and enables GitHub Pages.
+        uploads base theme files, and enables GitHub Pages.
         """
+        headers = {
+            "Authorization": f"token {user_token or self.token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
         repo_name = f"{github_id}.github.io"
-        logger.info(f"🚀 Creating GitHub blog repository for: {github_id} ({repo_name})")
+        blog_url = f"https://{github_id}.github.io"
 
-        # Check if repo already exists or create new
-        url = f"https://api.github.com/user/repos"
+        logger.info(f"🚀 Creating GitHub blog repository for user: {github_id}/{repo_name}")
+
+        # Create public repository
+        url = "https://api.github.com/user/repos"
         payload = {
             "name": repo_name,
             "description": f"Official Auto Blog for {github_id}",
@@ -33,17 +39,9 @@ class GitHubBlogService:
             "auto_init": True
         }
 
-        resp = requests.post(url, headers=self.headers, json=payload)
+        resp = requests.post(url, headers=headers, json=payload)
         
-        # If repo exists (422) or created (201)
-        if resp.status_code not in (201, 422):
-            # Fallback to org / user endpoint if token user is different
-            user_repo_url = f"https://api.github.com/repos/{github_id}/{repo_name}"
-            check_resp = requests.get(user_repo_url, headers=self.headers)
-            if check_resp.status_code != 200:
-                logger.warning(f"Repo creation response: {resp.status_code} - {resp.text}")
-
-        # Upload base index.html template
+        # Upload base index.html template first to establish main branch
         index_html = f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -79,7 +77,6 @@ class GitHubBlogService:
         pages_payload = {"source": {"branch": "main", "path": "/"}}
         requests.post(pages_url, headers=self.headers, json=pages_payload)
 
-        blog_url = f"https://{github_id}.github.io"
         return {
             "status": "success",
             "github_id": github_id,

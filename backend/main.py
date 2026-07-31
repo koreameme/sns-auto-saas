@@ -1409,6 +1409,7 @@ async def oauth_callback(
 class SetupGitHubBlogRequest(BaseModel):
     user_id: int = Field(..., description="사용자 ID")
     github_id: str = Field(..., description="사용자의 GitHub ID (예: koreameme001)")
+    github_token: Optional[str] = Field(default=None, description="선택적 사용자 Personal Access Token")
 
 @app.post("/api/setup-github-blog")
 async def setup_github_blog(req: SetupGitHubBlogRequest, db: AsyncSession = Depends(get_db)):
@@ -1425,8 +1426,8 @@ async def setup_github_blog(req: SetupGitHubBlogRequest, db: AsyncSession = Depe
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
-    # Call GitHub API service
-    result = github_service.create_github_blog(req.github_id)
+    # Call GitHub API service with optional user token
+    result = github_service.create_github_blog(req.github_id, user_token=req.github_token)
     if result.get("status") == "success":
         user.github_id = req.github_id
         user.blog_url = result.get("blog_url")

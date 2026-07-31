@@ -4,6 +4,7 @@ import { setupGithubBlogApi } from '../api';
 export default function OnboardingWizard({ user, onComplete, onClose }) {
   const [phase, setPhase] = useState('A'); // A: GitHub Signup & ID -> B: Affiliate & SNS Vault -> C: Auto Post Guide
   const [githubId, setGithubId] = useState(user?.github_id || '');
+  const [githubToken, setGithubToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [createdBlogUrl, setCreatedBlogUrl] = useState(user?.blog_url || '');
@@ -18,7 +19,8 @@ export default function OnboardingWizard({ user, onComplete, onClose }) {
     try {
       const data = await setupGithubBlogApi({
         user_id: user?.id || 1,
-        github_id: githubId.trim()
+        github_id: githubId.trim(),
+        github_token: githubToken.trim()
       });
       if (data && data.status === 'success') {
         setCreatedBlogUrl(data.blog_url);
@@ -39,7 +41,7 @@ export default function OnboardingWizard({ user, onComplete, onClose }) {
       style={{ backgroundColor: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(12px)' }}
     >
       <div 
-        className="text-white w-full max-w-2xl rounded-2xl p-6 md:p-8 shadow-2xl relative border"
+        className="text-white w-full max-w-2xl rounded-2xl p-6 md:p-8 shadow-2xl relative border max-h-[90vh] overflow-y-auto"
         style={{ backgroundColor: '#0f172a', borderColor: '#334155' }}
       >
         {/* Top-Right Close Button ✕ */}
@@ -52,7 +54,7 @@ export default function OnboardingWizard({ user, onComplete, onClose }) {
         </button>
 
         {/* Step Progress Header */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800 pr-10">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800 pr-10">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🧙‍♂️</span>
             <div>
@@ -73,38 +75,62 @@ export default function OnboardingWizard({ user, onComplete, onClose }) {
 
         {/* PHASE A: GitHub Signup Guide & ID Input */}
         {phase === 'A' && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="p-4 border rounded-xl" style={{ backgroundColor: '#1e1b4b', borderColor: '#4338ca' }}>
-              <h3 className="text-base font-bold text-indigo-300 mb-1">Step 1. GitHub 회원가입 & ID 입력</h3>
+              <h3 className="text-base font-bold text-indigo-300 mb-1">Step 1. GitHub ID & 액세스 토큰(PAT) 입력</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                아직 GitHub 계정이 없으신가요? 먼저 깃허브에 회원가입을 완료해 주세요.<br/>
-                가입 후 본인의 <strong>GitHub ID(아이디)</strong>를 아래에 입력하시면 1초 만에 깃허브 블로그가 자동 개설됩니다.
+                본인의 <strong>GitHub ID</strong>와 <strong>Personal Access Token(PAT)</strong>을 입력하시면 1초 만에 깃허브 블로그가 자동 개설됩니다.
               </p>
-              <div className="mt-3">
-                <a 
-                  href="https://github.com/signup" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-indigo-300 text-xs font-semibold rounded-lg border transition"
-                  style={{ backgroundColor: '#1e293b', borderColor: '#475569' }}
-                >
-                  🌐 GitHub 1초 회원가입 페이지 이동 ↗
-                </a>
+              
+              {/* Token Guide Banner Box */}
+              <div className="mt-3 p-3 rounded-lg border space-y-2" style={{ backgroundColor: '#0f172a', borderColor: '#334155' }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-400">🔑 1초 토큰 발급 가이드</span>
+                  <a 
+                    href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=SNSAutoSaaSPro" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-md transition shadow"
+                  >
+                    🔗 토큰 1초 자동 생성 페이지 ↗
+                  </a>
+                </div>
+                <ol className="text-[11px] text-slate-300 list-decimal list-inside space-y-1">
+                  <li>위 버튼을 누르면 `repo`, `workflow` 권한이 체크된 발급 페이지로 이동합니다.</li>
+                  <li>페이지 맨 아래 <strong className="text-emerald-400">Generate token</strong> 버튼 클릭 후 생성된 <code className="text-amber-300">ghp_...</code> 코드 복사!</li>
+                  <li>아래 토큰 입력칸에 붙여넣기 하시면 100% 본인 계정 블로그가 개설됩니다.</li>
+                </ol>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-2">
-                사용자의 GitHub ID (아이디)
-              </label>
-              <input
-                type="text"
-                value={githubId}
-                onChange={(e) => setGithubId(e.target.value)}
-                placeholder="예: koreameme001"
-                className="w-full px-4 py-3 border rounded-xl text-white placeholder-slate-500 focus:outline-none text-sm"
-                style={{ backgroundColor: '#020617', borderColor: '#334155' }}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  1. GitHub ID (아이디)
+                </label>
+                <input
+                  type="text"
+                  value={githubId}
+                  onChange={(e) => setGithubId(e.target.value)}
+                  placeholder="예: koreameme020"
+                  className="w-full px-4 py-2.5 border rounded-xl text-white placeholder-slate-500 focus:outline-none text-xs font-mono"
+                  style={{ backgroundColor: '#020617', borderColor: '#334155' }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  2. Personal Access Token (선택/권장)
+                </label>
+                <input
+                  type="password"
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                  placeholder="ghp_**** (복사한 토큰 붙여넣기)"
+                  className="w-full px-4 py-2.5 border rounded-xl text-white placeholder-slate-500 focus:outline-none text-xs font-mono"
+                  style={{ backgroundColor: '#020617', borderColor: '#334155' }}
+                />
+              </div>
             </div>
 
             {errorMsg && (
