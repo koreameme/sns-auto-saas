@@ -156,7 +156,7 @@ export default function Dashboard({ currentUser, onLogout }) {
   const fetchInstallationStatus = async () => {
     if (!currentUser?.id) return;
     try {
-      const res = await fetch(`/api/user/installation-status?user_id=${currentUser.id}`);
+      const res = await fetch(`/snsauto/api/user/installation-status?user_id=${currentUser.id}`);
       if (res.ok) {
         const data = await res.json();
         setInstallInfo(data);
