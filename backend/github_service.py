@@ -21,8 +21,15 @@ class GitHubBlogService:
         Calls GitHub REST API to automatically create {github_id}.github.io repository
         uploads base theme files, and enables GitHub Pages.
         """
+        active_token = user_token or self.token
+        if not active_token:
+            return {
+                "status": "error",
+                "message": "⚠️ GitHub Personal Access Token이 입력되지 않았습니다. [🔗 토큰 1초 자동 생성] 버튼을 눌러 발급된 ghp_... 토큰을 입력해 주세요."
+            }
+
         headers = {
-            "Authorization": f"token {user_token or self.token}",
+            "Authorization": f"token {active_token}",
             "Accept": "application/vnd.github.v3+json"
         }
         repo_name = f"{github_id}.github.io"
@@ -30,7 +37,7 @@ class GitHubBlogService:
 
         logger.info(f"🚀 Creating GitHub blog repository for user: {github_id}/{repo_name}")
 
-        # Create public repository
+        # Create public repository under the user's account
         url = "https://api.github.com/user/repos"
         payload = {
             "name": repo_name,
@@ -40,6 +47,12 @@ class GitHubBlogService:
         }
 
         resp = requests.post(url, headers=headers, json=payload)
+        
+        if resp.status_code == 401:
+            return {
+                "status": "error",
+                "message": "⚠️ 깃허브 토큰 인증 실패 (401 Bad Credentials). 올바른 PAT 토큰(ghp_...)을 입력해 주세요."
+            }
         
         # Upload base index.html template first to establish main branch
         index_html = f"""<!DOCTYPE html>
@@ -70,30 +83,36 @@ class GitHubBlogService:
 </body>
 </html>"""
 
-        self.commit_file_to_repo(github_id, repo_name, "index.html", index_html, "Initial blog template setup")
+        commit_res = self.commit_file_to_repo(github_id, repo_name, "index.html", index_html, "Initial blog template setup", headers=headers)
+        if commit_res.get("status") == "error":
+            return {
+                "status": "error",
+                "message": f"⚠️ 레파지토리 파일 생성 실패: {commit_res.get('message')}"
+            }
 
         # Enable GitHub Pages
         pages_url = f"https://api.github.com/repos/{github_id}/{repo_name}/pages"
         pages_payload = {"source": {"branch": "main", "path": "/"}}
-        requests.post(pages_url, headers=self.headers, json=pages_payload)
+        requests.post(pages_url, headers=headers, json=pages_payload)
 
         return {
             "status": "success",
             "github_id": github_id,
             "repo_name": repo_name,
             "blog_url": blog_url,
-            "message": f"🎉 {blog_url} 블로그 개설 및 업로드 준비가 완벽하게 완료되었습니다!"
+            "message": f"🎉 {blog_url} 레파지토리 및 블로그 개설이 완벽하게 완료되었습니다!"
         }
 
-    def commit_file_to_repo(self, github_id: str, repo_name: str, path: str, content_str: str, commit_message: str) -> dict:
+    def commit_file_to_repo(self, github_id: str, repo_name: str, path: str, content_str: str, commit_message: str, headers: dict = None) -> dict:
         """
         Commits an HTML/Markdown file to the GitHub repository using GitHub REST API.
         """
+        req_headers = headers or self.headers
         url = f"https://api.github.com/repos/{github_id}/{repo_name}/contents/{path}"
         content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
 
         # Get sha if file exists
-        get_resp = requests.get(url, headers=self.headers)
+        get_resp = requests.get(url, headers=req_headers)
         sha = None
         if get_resp.status_code == 200:
             sha = get_resp.json().get("sha")
@@ -105,7 +124,7 @@ class GitHubBlogService:
         if sha:
             payload["sha"] = sha
 
-        resp = requests.put(url, headers=self.headers, json=payload)
+        resp = requests.put(url, headers=req_headers, json=payload)
         if resp.status_code in (200, 201):
             return {"status": "success", "path": path, "commit": resp.json().get("commit", {}).get("sha")}
         else:
