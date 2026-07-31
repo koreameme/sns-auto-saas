@@ -25,6 +25,11 @@ export default function Dashboard({ currentUser, onLogout }) {
   const [adpickPartnerKey, setAdpickPartnerKey] = useState('');
   const [linkpriceMerchantId, setLinkpriceMerchantId] = useState('');
 
+  // GitHub Settings Direct State
+  const [githubIdInput, setGithubIdInput] = useState(currentUser?.github_id || 'koreameme020');
+  const [githubTokenInput, setGithubTokenInput] = useState('');
+  const [blogSetupLoading, setBlogSetupLoading] = useState(false);
+
   // Admin Panel State
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminUsersList, setAdminUsersList] = useState([]);
@@ -34,7 +39,45 @@ export default function Dashboard({ currentUser, onLogout }) {
   const [newFullName, setNewFullName] = useState('');
   const [newPlan, setNewPlan] = useState('pro');
 
+  // Smart Scroll-Hide Header State
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
   const isAdmin = currentUser?.role === 'admin';
+
+  const handleDirectGithubSetup = async () => {
+    if (!githubIdInput.trim()) {
+      alert('GitHub ID를 입력해 주세요.');
+      return;
+    }
+    setBlogSetupLoading(true);
+    try {
+      const res = await fetch('/snsauto/api/setup-github-blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: currentUser?.id || 1,
+          github_id: githubIdInput.trim(),
+          github_token: githubTokenInput.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        alert(`🎉 블로그 연동 완료!\n블로그 주소: ${data.blog_url}`);
+        setInstallInfo({
+          installation_status: 'COMPLETED',
+          github_id: githubIdInput.trim(),
+          blog_url: data.blog_url
+        });
+      } else {
+        alert(data.detail || data.message || '블로그 연동에 실패했습니다.');
+      }
+    } catch (err) {
+      alert('서버 통신 중 오류가 발생했습니다.');
+    } finally {
+      setBlogSetupLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchInstallationStatus();
@@ -42,6 +85,21 @@ export default function Dashboard({ currentUser, onLogout }) {
       fetchAdminUsers();
     }
   }, [currentUser?.id, isAdmin]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > 60 && currentScrollY > lastScrollY) {
+        setHeaderVisible(false); // Scroll Down -> Hide Header
+      } else {
+        setHeaderVisible(true);  // Scroll Up -> Show Header
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   const fetchInstallationStatus = async () => {
     if (!currentUser?.id) return;
@@ -212,7 +270,11 @@ export default function Dashboard({ currentUser, onLogout }) {
       )}
 
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-lg">
+      <header 
+        className={`sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-lg transition-all duration-300 ${
+          headerVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
         <div className="flex items-center gap-4">
           <div 
             onClick={() => setActiveTab('publisher')}
@@ -600,11 +662,61 @@ export default function Dashboard({ currentUser, onLogout }) {
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
               <div>
                 <h3 className="text-base font-bold text-indigo-300 flex items-center gap-2">
-                  <span>🔑</span> 내 제휴 API 키 암호화 Vault
+                  <span>🔑</span> 내 제휴 API 키 & 깃허브 토큰 Vault
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  쿠팡파트너스, 애드픽, 링크프라이스 API 키를 보관하시면 상품 통합 검색 및 자동 링크 변환이 지원됩니다.
+                  깃허브 ID/토큰 및 쿠팡파트너스, 애드픽, 링크프라이스 API 키를 여기서 언제든지 직접 수정하실 수 있습니다.
                 </p>
+              </div>
+
+              {/* 0. GitHub ID & PAT Direct Editor */}
+              <div className="p-4 bg-indigo-950/40 rounded-xl border border-indigo-500/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                    <span>🐙</span> GitHub 블로그 ID & 토큰 (PAT) 연동 설정
+                  </div>
+                  <a
+                    href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=SNSAutoSaaSPro"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-extrabold rounded transition shadow"
+                  >
+                    🔗 토큰 1초 자동 생성 ↗
+                  </a>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">GitHub ID (아이디)</label>
+                    <input
+                      type="text"
+                      value={githubIdInput}
+                      onChange={(e) => setGithubIdInput(e.target.value)}
+                      placeholder="예: koreameme020"
+                      className="w-full px-3.5 py-2 rounded-xl text-xs font-mono border"
+                      style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Personal Access Token (PAT)</label>
+                    <input
+                      type="password"
+                      value={githubTokenInput}
+                      onChange={(e) => setGithubTokenInput(e.target.value)}
+                      placeholder="ghp_**** (복사한 토큰 붙여넣기)"
+                      className="w-full px-3.5 py-2 rounded-xl text-xs font-mono border"
+                      style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleDirectGithubSetup}
+                  disabled={blogSetupLoading}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2"
+                >
+                  {blogSetupLoading ? '깃허브 블로그 생성/연동 중...' : '🚀 깃허브 블로그 1초 자동 개설 / 연동 업데이트'}
+                </button>
               </div>
 
               {/* 1. Coupang Partners */}
