@@ -216,8 +216,9 @@ export default function Dashboard({ currentUser, onLogout }) {
     alert('제휴 URL이 클립보드에 복사되었으며, 포스팅 URL 입력칸에 자동으로 채워졌습니다!');
   };
 
-  const handleSearchProducts = async () => {
-    if (!searchKeyword.trim()) return;
+  const handleSearchProducts = async (targetKw = null) => {
+    const kw = (typeof targetKw === 'string' ? targetKw : searchKeyword).trim();
+    if (!kw) return;
     setSearchLoading(true);
     // Mock search results across Coupang, Adpick, Linkprice
     setTimeout(() => {
@@ -225,7 +226,7 @@ export default function Dashboard({ currentUser, onLogout }) {
         {
           id: 1,
           network: '쿠팡파트너스',
-          title: `${searchKeyword} 가성비 TOP 1 로봇청소기`,
+          title: `${kw} 2026 가성비 TOP 1 추천 상품`,
           price: '349,000원',
           commission: '3.0%',
           image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400&q=80',
@@ -234,11 +235,11 @@ export default function Dashboard({ currentUser, onLogout }) {
         {
           id: 2,
           network: '애드픽',
-          title: `${searchKeyword} 스마트 앱연동 프리미엄 모델`,
+          title: `${kw} 스마트 앱연동 프리미엄 모델`,
           price: '429,000원',
           commission: '5.5%',
           image: 'https://images.unsplash.com/photo-1558317374-067fb5f30001?w=400&q=80',
-          url: `https://adpick.co.kr/v2/offer_${Date.now()}_2`
+          url: `https://adpick.co.kr/a/sample_${Date.now()}_2`
         },
         {
           id: 3,
@@ -607,12 +608,47 @@ export default function Dashboard({ currentUser, onLogout }) {
                   className="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
                 <button
-                  onClick={handleSearchProducts}
+                  onClick={() => handleSearchProducts()}
                   disabled={searchLoading}
                   className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition shadow-md shrink-0"
                 >
                   {searchLoading ? '검색 중...' : '🔍 통합 검색'}
                 </button>
+              </div>
+
+              {/* AI Recommended Hot Keywords TOP 10 Panel */}
+              <div className="mt-6 pt-4 border-t border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <span>🔥</span> 실시간 AI 추천 핫 트렌드 키워드 TOP 10 (1클릭 바로 검색)
+                  </span>
+                  <button
+                    onClick={() => setCurrentPoolIdx((prev) => (prev + 1) % keywordPools.length)}
+                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition border border-slate-700 flex items-center gap-1.5 shadow-sm"
+                  >
+                    <span>🔄</span> 키워드 새로고침
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {keywordPools[currentPoolIdx].map((kw) => (
+                    <button
+                      key={kw}
+                      onClick={() => {
+                        setSearchKeyword(kw);
+                        handleSearchProducts(kw);
+                      }}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-sm ${
+                        searchKeyword === kw
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-400 shadow-md scale-105'
+                          : 'bg-slate-950/80 text-slate-200 border-slate-800 hover:border-indigo-500/50 hover:text-white hover:bg-slate-800'
+                      }`}
+                    >
+                      <span className="text-indigo-400">⚡</span>
+                      <span>{kw}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
