@@ -29,6 +29,7 @@ export default function Dashboard({ currentUser, onLogout }) {
   const [githubIdInput, setGithubIdInput] = useState(currentUser?.github_id || 'koreameme020');
   const [githubTokenInput, setGithubTokenInput] = useState('');
   const [blogSetupLoading, setBlogSetupLoading] = useState(false);
+  const [isEditingGithub, setIsEditingGithub] = useState(false);
 
   // Admin Panel State
   const [adminUsers, setAdminUsers] = useState([]);
@@ -44,6 +45,24 @@ export default function Dashboard({ currentUser, onLogout }) {
   const [lastScrollY, setLastScrollY] = useState(0);
 
   const isAdmin = currentUser?.role === 'admin';
+
+  const handleDisconnectGithub = async () => {
+    if (!window.confirm('정말 현재 깃허브 블로그 연동을 해제하시겠습니까?')) return;
+    try {
+      const res = await fetch('/snsauto/api/disconnect-github-blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUser?.id || 1 })
+      });
+      if (res.ok) {
+        alert('🟢 깃허브 블로그 연동이 정상 해제되었습니다. 새 블로그 정보를 입력해 주세요.');
+        setInstallInfo({ installation_status: 'PENDING', github_id: null, blog_url: null });
+        setIsEditingGithub(true);
+      }
+    } catch (err) {
+      alert('연동 해제 중 오류가 발생했습니다.');
+    }
+  };
 
   const handleDirectGithubSetup = async () => {
     if (!githubIdInput.trim()) {
@@ -69,6 +88,7 @@ export default function Dashboard({ currentUser, onLogout }) {
           github_id: githubIdInput.trim(),
           blog_url: data.blog_url
         });
+        setIsEditingGithub(false);
       } else {
         alert(data.detail || data.message || '블로그 연동에 실패했습니다.');
       }
@@ -669,55 +689,107 @@ export default function Dashboard({ currentUser, onLogout }) {
                 </p>
               </div>
 
-              {/* 0. GitHub ID & PAT Direct Editor */}
-              <div className="p-4 bg-indigo-950/40 rounded-xl border border-indigo-500/40 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                    <span>🐙</span> GitHub 블로그 ID & 토큰 (PAT) 연동 설정
+              {/* 0. GitHub ID & PAT Direct Editor / Connected Status Card */}
+              {installInfo?.installation_status === 'COMPLETED' && !isEditingGithub ? (
+                <div className="p-4 bg-emerald-950/40 rounded-xl border border-emerald-500/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-1 bg-emerald-950 text-emerald-300 text-xs font-bold rounded-md border border-emerald-500/40 flex items-center gap-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      🟢 깃허브 블로그 연동 완료
+                    </span>
+                    <a
+                      href={installInfo.blog_url || `https://${installInfo.github_id}.github.io`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-indigo-400 hover:underline font-bold flex items-center gap-1"
+                    >
+                      🔗 블로그 바로가기 ↗
+                    </a>
                   </div>
-                  <a
-                    href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=SNSAutoSaaSPro"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-extrabold rounded transition shadow"
-                  >
-                    🔗 토큰 1초 자동 생성 ↗
-                  </a>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">GitHub ID (아이디)</label>
-                    <input
-                      type="text"
-                      value={githubIdInput}
-                      onChange={(e) => setGithubIdInput(e.target.value)}
-                      placeholder="예: koreameme020"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-mono border"
-                      style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Personal Access Token (PAT)</label>
-                    <input
-                      type="password"
-                      value={githubTokenInput}
-                      onChange={(e) => setGithubTokenInput(e.target.value)}
-                      placeholder="ghp_**** (복사한 토큰 붙여넣기)"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-mono border"
-                      style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
-                    />
-                  </div>
-                </div>
 
-                <button
-                  onClick={handleDirectGithubSetup}
-                  disabled={blogSetupLoading}
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2"
-                >
-                  {blogSetupLoading ? '깃허브 블로그 생성/연동 중...' : '🚀 깃허브 블로그 1초 자동 개설 / 연동 업데이트'}
-                </button>
-              </div>
+                  <div className="p-3 bg-slate-950/80 rounded-lg text-xs space-y-1 font-mono border border-slate-800">
+                    <div><span className="text-slate-400">연동 계정 ID:</span> <strong className="text-white">{installInfo.github_id}</strong></div>
+                    <div><span className="text-slate-400">개설 블로그 주소:</span> <span className="text-emerald-400">{installInfo.blog_url}</span></div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => setIsEditingGithub(true)}
+                      className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition border border-slate-700 flex items-center justify-center gap-1"
+                    >
+                      ⚙️ 재연동 / 계정 변경
+                    </button>
+                    <button
+                      onClick={handleDisconnectGithub}
+                      className="py-2 px-3 bg-red-950/80 hover:bg-red-900/80 text-red-300 text-xs font-bold rounded-xl transition border border-red-800/60"
+                    >
+                      ❌ 연동 해제
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-indigo-950/40 rounded-xl border border-indigo-500/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                      <span>🐙</span> GitHub 블로그 ID & 토큰 (PAT) 연동 설정
+                    </div>
+                    <a
+                      href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=SNSAutoSaaSPro"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-extrabold rounded transition shadow"
+                    >
+                      🔗 토큰 1초 자동 생성 ↗
+                    </a>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">GitHub ID (아이디)</label>
+                      <input
+                        type="text"
+                        value={githubIdInput}
+                        onChange={(e) => setGithubIdInput(e.target.value)}
+                        placeholder="예: koreameme020"
+                        className="w-full px-3.5 py-2 rounded-xl text-xs font-mono border"
+                        style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">Personal Access Token (PAT)</label>
+                      <input
+                        type="password"
+                        value={githubTokenInput}
+                        onChange={(e) => setGithubTokenInput(e.target.value)}
+                        placeholder="ghp_**** (복사한 토큰 붙여넣기)"
+                        className="w-full px-3.5 py-2 rounded-xl text-xs font-mono border"
+                        style={{ backgroundColor: '#020617', color: '#f8fafc', borderColor: '#334155' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleDirectGithubSetup}
+                      disabled={blogSetupLoading}
+                      className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2"
+                    >
+                      {blogSetupLoading ? '깃허브 블로그 생성/연동 중...' : '🚀 깃허브 블로그 1초 자동 개설 / 연동 업데이트'}
+                    </button>
+                    {installInfo?.installation_status === 'COMPLETED' && (
+                      <button
+                        onClick={() => setIsEditingGithub(false)}
+                        className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700"
+                      >
+                        취소
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* 1. Coupang Partners */}
               <div className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3">

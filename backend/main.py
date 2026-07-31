@@ -1443,6 +1443,31 @@ async def setup_github_blog(req: SetupGitHubBlogRequest, db: AsyncSession = Depe
         "message": f"🎉 {user.blog_url} 깃허브 블로그 개설 및 업로드 준비가 성공적으로 완료되었습니다!"
     }
 
+class DisconnectGitHubBlogRequest(BaseModel):
+    user_id: int = Field(..., description="사용자 ID")
+
+@app.post("/api/disconnect-github-blog")
+async def disconnect_github_blog(req: DisconnectGitHubBlogRequest, db: AsyncSession = Depends(get_db)):
+    """사용자의 깃허브 블로그 연동을 해제하여 신규 재연동이 가능하도록 합니다."""
+    from backend.models import User
+    from sqlalchemy import select
+
+    res = await db.execute(select(User).where(User.id == req.user_id))
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+
+    user.github_id = None
+    user.blog_url = None
+    user.installation_status = "PENDING"
+    await db.commit()
+    await db.refresh(user)
+
+    return {
+        "status": "success",
+        "message": "🟢 깃허브 블로그 연동이 정상 해제되었습니다."
+    }
+
 @app.get("/api/user/installation-status")
 async def get_installation_status(user_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     """사용자의 블로그 연동 가드 상태 조회 (2회 재설치 100% 방지)"""
