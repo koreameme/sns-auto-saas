@@ -145,8 +145,12 @@ export default function Dashboard({ currentUser }) {
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl animate-pulse">⚡</span>
+          <div 
+            onClick={() => setActiveTab('publisher')}
+            title="대시보드 첫 화면으로 이동"
+            className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition group select-none"
+          >
+            <span className="text-2xl animate-pulse group-hover:scale-110 transition-transform">⚡</span>
             <h1 className="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
               SNS AutoSaaS Pro
             </h1>
